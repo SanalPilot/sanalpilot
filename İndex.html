@@ -1,1 +1,305 @@
 
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1020">
+<title>NEXUS AI Studio</title>
+<style>
+:root{--bg:#0b1020;--panel:#151e33;--line:#2b3957;--text:#edf2ff;--muted:#9eacc7;--purple:#8b72ff;--cyan:#55d6d0}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top right,#30245f,transparent 40%),var(--bg);color:var(--text);font:15px system-ui,sans-serif}
+main{max-width:950px;margin:auto;padding:16px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.logo{width:45px;height:45px;border-radius:14px;background:linear-gradient(135deg,#8b72ff,#55d6d0);display:grid;place-items:center;font-size:24px;font-weight:bold}
+h1{font-size:20px;margin:0;letter-spacing:2px}
+header small,.muted{color:var(--muted)}
+.hero,.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}
+.hero{background:linear-gradient(130deg,#25234b,#17243c)}
+.hero h2{font-size:27px;margin:8px 0}
+h3{font-size:16px;margin:0 0 12px}
+label{display:block;font-size:12px;color:#cbd6ed;font-weight:bold;margin:12px 0 6px}
+input,textarea,select{width:100%;padding:12px;border:1px solid #394968;border-radius:10px;background:#0d1629;color:white;font:inherit}
+textarea{min-height:90px;resize:vertical}
+button{border:0;border-radius:10px;background:var(--purple);color:white;padding:12px 15px;font-weight:bold;cursor:pointer}
+.secondary{background:#263653;border:1px solid #405174}
+.row{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.row button{flex:1}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.scene{background:#101a2d;border:1px solid var(--line);border-radius:13px;padding:13px;margin-top:12px}
+.scene b{font-size:13px}
+.scene textarea{font-size:12px;min-height:75px}
+.tag{font-size:10px;color:#c6baff;background:#30285a;padding:5px 8px;border-radius:20px}
+.notice{font-size:12px;color:#d8d0ff;background:#292442;border:1px solid #514477;padding:12px;border-radius:11px;margin-top:12px}
+.preview{max-width:100%;max-height:180px;display:none;margin-top:10px;border-radius:12px}
+a{color:#8edbd8}
+footer{text-align:center;color:#7f8ca8;font-size:11px;padding:20px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.hero h2{font-size:23px}main{padding:12px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="logo">✦</div>
+<div><h1>NEXUS AI</h1><small>Creative Studio · Mobile Edition</small></div>
+</header>
+
+<section class="hero">
+<div style="color:var(--cyan);font-size:11px;letter-spacing:2px">YOUR CREATIVE WORKSPACE</div>
+<h2>Fikrini sahnelere dönüştür.</h2>
+<p class="muted">Senaryo, görsel, video promptları, seslendirme ve karakter tutarlılığı tek yerde.</p>
+</section>
+
+<section class="card">
+<h3>✧ Yeni proje</h3>
+<label>İçerik türü</label>
+<select id="kind">
+<option>Havacılık Shorts</option>
+<option>Çocuk hikâyesi</option>
+<option>Tarih belgeseli</option>
+<option>Serbest proje</option>
+</select>
+<label>Proje başlığı</label>
+<input id="title" value="Yeni NEXUS AI Projesi">
+<label>Video fikri</label>
+<textarea id="idea" placeholder="Videonun konusunu anlat..."></textarea>
+<div class="grid">
+<div>
+<label>Video formatı</label>
+<select id="format">
+<option>9:16 Dikey</option>
+<option>16:9 Yatay</option>
+<option>1:1 Kare</option>
+</select>
+</div>
+<div>
+<label>Sahne sayısı</label>
+<select id="count">
+<option>8</option><option>5</option><option>6</option><option>10</option><option>12</option>
+</select>
+</div>
+</div>
+<div class="row">
+<button onclick="generate()">✦ Sahne oluştur</button>
+<button class="secondary" onclick="saveProject()">Projeyi kaydet</button>
+</div>
+</section>
+
+<section class="card">
+<h3>◉ Karakter kimliği</h3>
+<p class="muted">Referans fotoğrafını ekle. Promptlarda yüz tutarlılığını korumak için kullan.</p>
+<input type="file" id="photo" accept="image/*">
+<img id="preview" class="preview">
+<label>Karakter koruma talimatı</label>
+<textarea id="identity">Referans fotoğrafındaki kişinin yüzünü, yüz geometrisini, saçını, sakalını, yaş görünümünü, ten dokusunu ve vücut oranlarını kesinlikle değiştirme. Güzelleştirme, yüz inceltme, cilt yumuşatma veya kimlik değiştirme yapma. Doğal mimikler ve gerçekçi hareketler kullan.</textarea>
+</section>
+
+<section class="card">
+<h3>▤ Sahne yönetimi <span class="tag" id="sceneCount">0 sahne</span></h3>
+<div id="scenes" class="muted">Henüz sahne oluşturulmadı.</div>
+<div class="row">
+<button class="secondary" onclick="copyAll()">Tüm promptları kopyala</button>
+<button class="secondary" onclick="exportProject()">JSON indir</button>
+</div>
+</section>
+
+<section class="card">
+<h3>🎙 Yapay zekâ seslendirme</h3>
+<label>Seslendirme metni</label>
+<textarea id="voice" placeholder="Sahne metinlerini buraya aktar..."></textarea>
+<div class="row">
+<button onclick="collectVoice()">Sahnelerden metni al</button>
+<button class="secondary" onclick="copyVoice()">Metni kopyala</button>
+<button class="secondary" onclick="downloadVoice()">TXT indir</button>
+</div>
+<p class="muted">Türkçe ses üretimi için harici TTS servisi kullanabilirsin.</p>
+<a href="https://speechma.com/turkish-text-to-speech" target="_blank">Türkçe seslendirme aracını aç ↗</a>
+</section>
+
+<section class="card">
+<h3>🎭 Fotoğrafı konuştur</h3>
+<p class="muted">Bir fotoğraf ve ses dosyası kullanarak dudak senkronizasyonu ve yüz hareketleri üret.</p>
+<label>Konuşacak kişinin fotoğrafı</label>
+<input type="file" id="talkPhoto" accept="image/*">
+<label>Ses dosyası (MP3 / WAV)</label>
+<input type="file" id="talkAudio" accept="audio/*">
+<div class="row">
+<button onclick="openTalkingPhoto()">Konuşan fotoğraf aracını aç</button>
+</div>
+<div class="notice">Önce fotoğrafını ve ses dosyanı cihazında hazırla. Ardından SadTalker demosunda ikisini yükleyerek konuşan video oluşturabilirsin. Ücretsiz demo kuyruğu ve kullanım limitleri olabilir.</div>
+<a href="https://huggingface.co/spaces/vinthony/SadTalker" target="_blank">SadTalker ücretsiz demosu ↗</a>
+</section>
+
+<section class="card">
+<h3>🎬 Video üretim paketi</h3>
+<label>Video motoru</label>
+<select id="engine">
+<option>Wan açık model</option>
+<option>LTX açık model</option>
+</select>
+<label>Klip süresi</label>
+<select id="duration">
+<option>5 saniye</option>
+<option>6 saniye</option>
+<option>8 saniye</option>
+<option>10 saniye</option>
+</select>
+<div class="row">
+<button onclick="prepareVideo()">Video paketini hazırla</button>
+<button class="secondary" onclick="downloadSRT()">Altyazı SRT indir</button>
+</div>
+<div id="videoResult" class="muted" style="margin-top:12px"></div>
+<div class="notice">Bu sürüm sahne promptları ve montaj planı hazırlar. Gerçek video üretimi harici motorlarda yapılır; henüz otomatik MP4 üretimi veya birleştirme API'si bağlı değildir.</div>
+</section>
+
+<section class="card">
+<h3>⚙ Güvenlik ve bağlantılar</h3>
+<p class="muted">API anahtarlarını doğrudan HTML dosyasına yazma. Gerçek API bağlantıları için anahtarları sunucu tarafında saklayan güvenli bir arka uç gerekir.</p>
+</section>
+
+<footer>NEXUS AI · Mobile Creative Studio</footer>
+</main>
+
+<script>
+let scenes=[];
+
+document.getElementById("photo").addEventListener("change",e=>{
+ const f=e.target.files[0];
+ if(!f)return;
+ const img=document.getElementById("preview");
+ img.src=URL.createObjectURL(f);
+ img.style.display="block";
+});
+
+function generate(){
+ const idea=document.getElementById("idea").value.trim();
+ if(!idea){alert("Önce video fikrini yaz.");return;}
+ const count=Number(document.getElementById("count").value);
+ const identity=document.getElementById("identity").value;
+ const names=[
+ "Açılış ve merak uyandıran kanca",
+ "Olayın arka planı",
+ "Gerilimin yükselmesi",
+ "Kritik an",
+ "Sonuçlar",
+ "Araştırma ve açıklama",
+ "Dersler ve etkiler",
+ "Güçlü kapanış"
+ ];
+ scenes=Array.from({length:count},(_,i)=>({
+ name:"Sahne "+(i+1)+" — "+names[i%names.length],
+ voice:"Bu sahnede anlatılacak metni buraya yaz.",
+ visual:idea+"\n\n"+names[i%names.length]+". Sinematik, gerçekçi, doğal kamera hareketleri. Format: "+document.getElementById("format").value+".\n\nKARAKTER KORUMA: "+identity,
+ negative:"Yüz değiştirme, kimlik değiştirme, bozuk anatomi, plastik cilt, yapay mimik, yanlış dönem ayrıntıları, okunaksız yazı."
+ }));
+ render();
+}
+
+function render(){
+ const box=document.getElementById("scenes");
+ box.innerHTML="";
+ document.getElementById("sceneCount").textContent=scenes.length+" sahne";
+ scenes.forEach((s,i)=>{
+ const d=document.createElement("div");
+ d.className="scene";
+ d.innerHTML="<b>"+s.name+"</b><label>Anlatıcı metni</label><textarea data-i='"+i+"' data-k='voice'></textarea><label>Görsel / video promptu</label><textarea data-i='"+i+"' data-k='visual'></textarea><label>Negatif prompt</label><textarea data-i='"+i+"' data-k='negative'></textarea>";
+ box.appendChild(d);
+ d.querySelectorAll("textarea").forEach(t=>{
+ t.value=s[t.dataset.k];
+ t.addEventListener("input",()=>scenes[i][t.dataset.k]=t.value);
+ });
+ });
+}
+
+function collectVoice(){
+ if(!scenes.length)return alert("Önce sahne oluştur.");
+ document.getElementById("voice").value=scenes.map((s,i)=>"Sahne "+(i+1)+". "+s.voice).join("\n\n");
+}
+async function copyVoice(){
+ const v=document.getElementById("voice").value;
+ if(!v)return alert("Seslendirme metni boş.");
+ try{await navigator.clipboard.writeText(v);alert("Metin kopyalandı.");}
+ catch(e){alert("Kopyalama desteklenmedi. TXT olarak indirebilirsin.");}
+}
+function downloadVoice(){
+ const v=document.getElementById("voice").value;
+ if(!v)return alert("Metin boş.");
+ downloadFile(v,"nexus-seslendirme.txt","text/plain");
+}
+async function copyAll(){
+ if(!scenes.length)return alert("Önce sahne oluştur.");
+ const txt=scenes.map(s=>s.name+"\nANLATICI: "+s.voice+"\nPROMPT: "+s.visual+"\nNEGATİF: "+s.negative).join("\n\n---\n\n");
+ try{await navigator.clipboard.writeText(txt);alert("Tüm promptlar kopyalandı.");}
+ catch(e){alert("Panoya erişilemedi. JSON olarak indirebilirsin.");}
+}
+function projectData(){
+ return {title:document.getElementById("title").value,kind:document.getElementById("kind").value,idea:document.getElementById("idea").value,format:document.getElementById("format").value,scenes};
+}
+function saveProject(){
+ localStorage.setItem("nexusProject",JSON.stringify(projectData()));
+ alert("Proje bu tarayıcıya kaydedildi.");
+}
+function exportProject(){
+ downloadFile(JSON.stringify(projectData(),null,2),"nexus-proje.json","application/json");
+}
+function downloadFile(content,name,type){
+ const blob=new Blob([content],{type});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;a.download=name;a.click();
+ URL.revokeObjectURL(url);
+}
+function openTalkingPhoto(){
+ const p=document.getElementById("talkPhoto").files[0];
+ const a=document.getElementById("talkAudio").files[0];
+ if(!p||!a)return alert("Önce fotoğraf ve ses dosyasını seç.");
+ window.open("https://huggingface.co/spaces/vinthony/SadTalker","_blank");
+}
+function prepareVideo(){
+ if(!scenes.length)return alert("Önce sahne oluştur.");
+ const seconds=parseInt(document.getElementById("duration").value);
+ const data={
+ engine:document.getElementById("engine").value,
+ duration:seconds,
+ project:projectData(),
+ clips:scenes.map((s,i)=>({
+ file:"scene_"+(i+1)+".mp4",
+ prompt:s.visual+"\nKlip süresi: "+seconds+" saniye.",
+ negative:s.negative,
+ narration:s.voice
+ })),
+ montageOrder:scenes.map((s,i)=>"scene_"+(i+1)+".mp4"),
+ output:"nexus-final-video.mp4"
+ };
+ window.nexusVideoPackage=data;
+ document.getElementById("videoResult").textContent="Video paketi hazır. JSON olarak dışa aktarabilirsin.";
+ downloadFile(JSON.stringify(data,null,2),"nexus-video-paketi.json","application/json");
+}
+function downloadSRT(){
+ if(!scenes.length)return alert("Önce sahne oluştur.");
+ let t=0,out=[];
+ const sec=parseInt(document.getElementById("duration").value);
+ const stamp=n=>{
+ const h=Math.floor(n/3600),m=Math.floor(n%3600/60),s=n%60;
+ return [h,m,s].map(x=>String(x).padStart(2,"0")).join(":")+",000";
+ };
+ scenes.forEach((s,i)=>{
+ out.push((i+1)+"\n"+stamp(t)+" --> "+stamp(t+sec)+"\n"+s.voice+"\n");
+ t+=sec;
+ });
+ downloadFile(out.join("\n"),"nexus-altyazi.srt","text/plain");
+}
+const old=localStorage.getItem("nexusProject");
+if(old){
+ try{
+ const p=JSON.parse(old);
+ document.getElementById("title").value=p.title||"";
+ document.getElementById("idea").value=p.idea||"";
+ scenes=p.scenes||[];
+ render();
+ }catch(e){}
+}
+</script>
+</body>
+</html>
