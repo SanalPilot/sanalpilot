@@ -13,13 +13,15 @@ export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
     const url = new URL(request.url);
+    const HF_SPACE_URL = env.HF_SPACE_URL || "https://henrybit-musetalk-1-5.hf.space";
+    const HF_API_NAME = env.HF_API_NAME || "/generate";
 
     try {
       if (url.pathname === "/api/health") {
         return json({
           ok: true,
           groqConfigured: Boolean(env.GROQ_API_KEY),
-          videoConfigured: Boolean(env.HF_SPACE_URL && env.HF_API_NAME),
+          videoConfigured: Boolean(HF_SPACE_URL && HF_API_NAME),
           ttsConfigured: Boolean(env.TTS_API_URL && env.TTS_API_KEY)
         });
       }
@@ -68,7 +70,7 @@ export default {
 
       // Upload a portrait or narration audio file to the configured Gradio Space.
       if (url.pathname === "/api/video/upload" && request.method === "POST") {
-        if (!env.HF_SPACE_URL || !env.HF_API_NAME) return json({ error: "Video Space is not configured.", diagnostics: { hasSpaceUrl: Boolean(env.HF_SPACE_URL), hasApiName: Boolean(env.HF_API_NAME) } }, 503);
+        if (!HF_SPACE_URL || !HF_API_NAME) return json({ error: "Video Space is not configured.", diagnostics: { hasSpaceUrl: Boolean(env.HF_SPACE_URL), hasApiName: Boolean(env.HF_API_NAME) } }, 503);
         const incoming = await request.formData();
         const file = incoming.get("file");
         if (!file || typeof file.arrayBuffer !== "function") return json({ error: "A file field is required." }, 400);
@@ -77,7 +79,7 @@ export default {
         const headers = {};
         const hfToken = request.headers.get("X-HF-Token") || env.HF_TOKEN;
         if (hfToken) headers.Authorization = "Bearer " + hfToken;
-        const base = env.HF_SPACE_URL.replace(/\/$/, "");
+        const base = HF_SPACE_URL.replace(/\/$/, "");
         const upstream = await fetch(base + "/gradio_api/upload", { method: "POST", headers, body: form });
         const raw = await upstream.text();
         if (!upstream.ok) return json({ error: "Hugging Face upload failed", detail: raw.slice(0, 1500) }, upstream.status);
@@ -91,14 +93,14 @@ export default {
       // Generic Gradio Space queue bridge. The exact Space API name and input array
       // must be read from that Space's "Use via API" panel before production use.
       if (url.pathname === "/api/video/start" && request.method === "POST") {
-        if (!env.HF_SPACE_URL || !env.HF_API_NAME) return json({ error: "Set HF_SPACE_URL and HF_API_NAME after checking the Space API panel.", diagnostics: { hasSpaceUrl: Boolean(env.HF_SPACE_URL), hasApiName: Boolean(env.HF_API_NAME) } }, 503);
+        if (!HF_SPACE_URL || !HF_API_NAME) return json({ error: "Set HF_SPACE_URL and HF_API_NAME after checking the Space API panel.", diagnostics: { hasSpaceUrl: Boolean(env.HF_SPACE_URL), hasApiName: Boolean(env.HF_API_NAME) } }, 503);
         const body = await request.json();
         if (!Array.isArray(body.data)) return json({ error: "Expected { data: [...] } using the Space's exact API input order." }, 400);
-        const base = env.HF_SPACE_URL.replace(/\/$/, "");
+        const base = HF_SPACE_URL.replace(/\/$/, "");
         const headers = { "Content-Type": "application/json" };
         const hfToken = request.headers.get("X-HF-Token") || env.HF_TOKEN;
         if (hfToken) headers.Authorization = "Bearer " + hfToken;
-        const apiName = String(env.HF_API_NAME).split("/").filter(Boolean).join("/");
+        const apiName = String(HF_API_NAME).split("/").filter(Boolean).join("/");
         const upstream = await fetch(base + "/gradio_api/call/" + apiName, {
           method: "POST", headers, body: JSON.stringify({ data: body.data })
         });
@@ -108,14 +110,14 @@ export default {
       }
 
       if (url.pathname === "/api/video/result" && request.method === "GET") {
-        if (!env.HF_SPACE_URL || !env.HF_API_NAME) return json({ error: "Video Space is not configured." }, 503);
+        if (!HF_SPACE_URL || !HF_API_NAME) return json({ error: "Video Space is not configured." }, 503);
         const eventId = url.searchParams.get("event_id");
         if (!eventId) return json({ error: "event_id is required." }, 400);
-        const base = env.HF_SPACE_URL.replace(/\/$/, "");
+        const base = HF_SPACE_URL.replace(/\/$/, "");
         const headers = {};
         const hfToken = request.headers.get("X-HF-Token") || env.HF_TOKEN;
         if (hfToken) headers.Authorization = "Bearer " + hfToken;
-        const apiName = String(env.HF_API_NAME).split("/").filter(Boolean).join("/");
+        const apiName = String(HF_API_NAME).split("/").filter(Boolean).join("/");
         const upstream = await fetch(base + "/gradio_api/call/" + apiName + "/" + encodeURIComponent(eventId), { headers });
         const raw = await upstream.text();
         if (!upstream.ok) return json({ error: "Hugging Face result request failed", detail: raw.slice(0, 1500) }, upstream.status);
