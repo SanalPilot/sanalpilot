@@ -66,7 +66,7 @@ $('presenter').addEventListener('change',e=>{const f=e.target.files[0];if(!f)ret
 async function buildScenes(){
  const idea=$('idea').value.trim(), narration=$('narration').value.trim();
  if(!idea&&!narration){alert('Önce video fikrini veya seslendirme metnini yaz.');return;}
- const base=$('apiBase').value.trim().replace(/\/$/,'');
+ const base=$('apiBase').value.trim().replace(/^http:\/\//i,'https://').replace(/\/+$/,''); $('apiBase').value=base; saveApiBase();
  if(!base){alert('Önce Cloudflare Worker backend adresini gir. Backend henüz dağıtılmadı.');return;}
  $('status').textContent='Groq AI hikâyeyi analiz ediyor ve sahneleri yazıyor...';
  try{
