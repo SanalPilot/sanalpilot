@@ -105,6 +105,7 @@ async function uploadTalkingFile(file,base){
  return data.path;
 }
 async function generateTalkingVideo(){
+ let stage='Başlangıç';
  const base=$('apiBase').value.trim().replace(/^http:\/\//i,'https://').replace(/\/+$/,'');
  const image=$('presenter').files[0],audio=$('narrationAudio').files[0];
  if(!base){alert('Önce Backend URL adresini gir.');return;}
@@ -114,10 +115,13 @@ async function generateTalkingVideo(){
  const status=$('talkingStatus');status.textContent='Fotoğraf ve ses dosyası güvenli sunucu üzerinden yükleniyor...';
  $('talkingResult').style.display='none';
  try{
+  stage='Fotoğraf yükleme';
   const imagePath=await uploadTalkingFile(image,base);
   status.textContent='Ses dosyası yükleniyor...';
+  stage='Ses dosyası yükleme';
   const audioPath=await uploadTalkingFile(audio,base);
   status.textContent='MuseTalk ücretsiz GPU kuyruğuna gönderiliyor. İlk çalıştırma uzun sürebilir...';
+  stage='MuseTalk görevini başlatma';
   const start=await fetch(base+'/api/video/start',{method:'POST',headers:apiHeaders(true),body:JSON.stringify({data:[
    {path:audioPath,meta:{_type:'gradio.FileData'}},
    {path:imagePath,meta:{_type:'gradio.FileData'}},
@@ -127,6 +131,7 @@ async function generateTalkingVideo(){
   if(!start.ok)throw new Error(job.error||job.detail||'Video görevi başlatılamadı.');
   if(!job.event_id)throw new Error('Video motoru görev numarası döndürmedi.');
   status.textContent='Anlatıcı canlandırılıyor. Lütfen bekle; ücretsiz GPU yoğunluğuna göre birkaç dakika sürebilir...';
+  stage='MuseTalk sonucunu alma';
   const resultResponse=await fetch(base+'/api/video/result?event_id='+encodeURIComponent(job.event_id),{headers:apiHeaders()});
   const stream=await resultResponse.text();
   if(!resultResponse.ok)throw new Error(stream.slice(0,500));
@@ -144,6 +149,6 @@ async function generateTalkingVideo(){
   if(videoUrl.startsWith('/'))videoUrl='https://henrybit-musetalk-1-5.hf.space'+videoUrl;
   $('talkingResult').src=videoUrl;$('talkingResult').style.display='block';
   status.textContent='Anlatıcı videosu hazır. Videoyu oynatabilir veya video menüsünden indirebilirsin.';
- }catch(error){status.textContent='Üretim hatası: '+error.message;alert('Anlatıcı videosu oluşturulamadı: '+error.message);}
+ }catch(error){status.textContent='Hata aşaması: '+stage+' · '+error.message;alert('Anlatıcı videosu oluşturulamadı. Aşama: '+stage+' · '+error.message);}
 }
 </script></body></html>
