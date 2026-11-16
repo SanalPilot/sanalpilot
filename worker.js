@@ -1,7 +1,7 @@
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type,Authorization",
+  "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Groq-Key,X-HF-Token",
   "Content-Type": "application/json; charset=utf-8"
 };
 
@@ -25,7 +25,8 @@ export default {
       }
 
       if (url.pathname === "/api/story" && request.method === "POST") {
-        if (!env.GROQ_API_KEY) return json({ error: "GROQ_API_KEY secret is missing." }, 503);
+        const groqKey = request.headers.get("X-Groq-Key") || env.GROQ_API_KEY;
+        if (!groqKey) return json({ error: "Groq API anahtarını uygulama ayarlarına gir." }, 401);
         const input = await request.json();
         const idea = String(input.idea || "").slice(0, 12000);
         const narration = String(input.narration || "").slice(0, 18000);
@@ -45,7 +46,7 @@ export default {
 
         const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
-          headers: { "Authorization": "Bearer " + env.GROQ_API_KEY, "Content-Type": "application/json" },
+          headers: { "Authorization": "Bearer " + groqKey, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: env.GROQ_MODEL || "openai/gpt-oss-20b",
             temperature: 0.7,
@@ -74,7 +75,8 @@ export default {
         const form = new FormData();
         form.append("files", file, file.name || "upload.bin");
         const headers = {};
-        if (env.HF_TOKEN) headers.Authorization = "Bearer " + env.HF_TOKEN;
+        const hfToken = request.headers.get("X-HF-Token") || env.HF_TOKEN;
+        if (hfToken) headers.Authorization = "Bearer " + hfToken;
         const base = env.HF_SPACE_URL.replace(/\/$/, "");
         const upstream = await fetch(base + "/gradio_api/upload", { method: "POST", headers, body: form });
         const raw = await upstream.text();
@@ -94,7 +96,8 @@ export default {
         if (!Array.isArray(body.data)) return json({ error: "Expected { data: [...] } using the Space's exact API input order." }, 400);
         const base = env.HF_SPACE_URL.replace(/\/$/, "");
         const headers = { "Content-Type": "application/json" };
-        if (env.HF_TOKEN) headers.Authorization = "Bearer " + env.HF_TOKEN;
+        const hfToken = request.headers.get("X-HF-Token") || env.HF_TOKEN;
+        if (hfToken) headers.Authorization = "Bearer " + hfToken;
         const apiName = String(env.HF_API_NAME).replace(/^\/+/, "");
         const upstream = await fetch(base + "/gradio_api/call/" + apiName, {
           method: "POST", headers, body: JSON.stringify({ data: body.data })
@@ -110,7 +113,8 @@ export default {
         if (!eventId) return json({ error: "event_id is required." }, 400);
         const base = env.HF_SPACE_URL.replace(/\/$/, "");
         const headers = {};
-        if (env.HF_TOKEN) headers.Authorization = "Bearer " + env.HF_TOKEN;
+        const hfToken = request.headers.get("X-HF-Token") || env.HF_TOKEN;
+        if (hfToken) headers.Authorization = "Bearer " + hfToken;
         const apiName = String(env.HF_API_NAME).replace(/^\/+/, "");
         const upstream = await fetch(base + "/gradio_api/call/" + apiName + "/" + encodeURIComponent(eventId), { headers });
         const raw = await upstream.text();
