@@ -117,11 +117,11 @@ async function generateTalkingVideo(){
   const imagePath=await uploadTalkingFile(image,base);
   status.textContent='Ses dosyası yükleniyor...';
   const audioPath=await uploadTalkingFile(audio,base);
-  status.textContent='SadTalker ücretsiz GPU kuyruğuna gönderiliyor. İlk çalıştırma uzun sürebilir...';
+  status.textContent='MuseTalk ücretsiz GPU kuyruğuna gönderiliyor. İlk çalıştırma uzun sürebilir...';
   const start=await fetch(base+'/api/video/start',{method:'POST',headers:apiHeaders(true),body:JSON.stringify({data:[
-   {path:imagePath,meta:{_type:'gradio.FileData'}},
    {path:audioPath,meta:{_type:'gradio.FileData'}},
-   'crop',false,0,1.0
+   {path:imagePath,meta:{_type:'gradio.FileData'}},
+   0,10,'jaw',90,90
   ]})});
   const job=await start.json();
   if(!start.ok)throw new Error(job.error||job.detail||'Video görevi başlatılamadı.');
@@ -139,9 +139,9 @@ async function generateTalkingVideo(){
   if(!output)throw new Error('Video sonucu okunamadı: '+stream.slice(-500));
   const file=output.video||output;
   let videoUrl=file.url||'';
-  if(!videoUrl&&file.path)videoUrl='https://henrybit-sadtalker-demo.hf.space/gradio_api/file='+encodeURIComponent(file.path);
+  if(!videoUrl&&file.path)videoUrl='https://henrybit-musetalk-1-5.hf.space/gradio_api/file='+encodeURIComponent(file.path);
   if(!videoUrl)throw new Error('Video üretildi ancak indirme adresi alınamadı.');
-  if(videoUrl.startsWith('/'))videoUrl='https://henrybit-sadtalker-demo.hf.space'+videoUrl;
+  if(videoUrl.startsWith('/'))videoUrl='https://henrybit-musetalk-1-5.hf.space'+videoUrl;
   $('talkingResult').src=videoUrl;$('talkingResult').style.display='block';
   status.textContent='Anlatıcı videosu hazır. Videoyu oynatabilir veya video menüsünden indirebilirsin.';
  }catch(error){status.textContent='Üretim hatası: '+error.message;alert('Anlatıcı videosu oluşturulamadı: '+error.message);}
