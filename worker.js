@@ -75,7 +75,7 @@ export default {
         form.append("files", file, file.name || "upload.bin");
         const headers = {};
         if (env.HF_TOKEN) headers.Authorization = "Bearer " + env.HF_TOKEN;
-        const base = env.HF_SPACE_URL.replace(/\\/$/, "");
+        const base = env.HF_SPACE_URL.replace(/\/$/, "");
         const upstream = await fetch(base + "/gradio_api/upload", { method: "POST", headers, body: form });
         const raw = await upstream.text();
         if (!upstream.ok) return json({ error: "Hugging Face upload failed", detail: raw.slice(0, 1500) }, upstream.status);
