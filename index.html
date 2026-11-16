@@ -22,7 +22,7 @@ main{max-width:760px;margin:auto;padding:16px}header{display:flex;align-items:ce
 </section>
 <section class="panel">
 <h3>02 · Anlatıcı</h3><p class="muted">Her projede kendi fotoğrafını veya hazır anlatıcı videonu yükle. Yüz ve arka plan korunacak şekilde kullanılması için talimat eklenir.</p>
-<label>Anlatıcı fotoğrafı veya videosu</label><input id="presenter" type="file" accept="image/*,video/*"><img id="presenterPreview" class="preview" alt="Anlatıcı önizlemesi"><video id="presenterVideo" class="preview" controls playsinline></video>
+<label>Anlatıcı fotoğrafı veya videosu</label><input id="presenter" type="file" accept="image/*"><img id="presenterPreview" class="preview" alt="Anlatıcı önizlemesi"><video id="presenterVideo" class="preview" controls playsinline></video>
 <label>Kimlik koruma talimatı</label><textarea id="identity">Yüklenen anlatıcının kimliğini kesinlikle koru. Yüz geometrisini, gözleri, burnu, ağzı, saçını, sakalını, yaş görünümünü, ten dokusunu, vücut oranlarını ve arka planı değiştirme. Güzelleştirme veya yüz rötuşu yapma. Yalnızca doğal, küçük mimikler ve gerçekçi hareketler kullan.</textarea>
 </section>
 <section class="panel">
@@ -30,7 +30,12 @@ main{max-width:760px;margin:auto;padding:16px}header{display:flex;align-items:ce
 <label>Seslendirme metni</label><textarea id="narration" placeholder="Videoda duyulmasını istediğin anlatımı buraya yaz. Sahnelere bölünmesi için metni paragraf paragraf da yazabilirsin."></textarea>
 <div class="grid"><div><label>Ses tipi tercihi</label><select id="voice"><option>Türkçe erkek · tok anlatıcı</option><option>Türkçe kadın · belgesel anlatıcı</option><option>Türkçe erkek · enerjik</option><option>Türkçe kadın · sıcak anlatım</option></select></div><div><label>Anlatım tarzı</label><select id="tone"><option>Sinematik belgesel</option><option>Heyecanlı ve merak uyandıran</option><option>Sakin ve açıklayıcı</option><option>Çocuklara uygun</option></select></div></div>
 <div class="row"><button class="secondary" onclick="openTTS()">Seslendirme aracını aç ↗</button><button class="secondary" onclick="copyNarration()">Metni kopyala</button></div>
-<p class="muted">Ses seçimi şu an üretim tercihidir. Bu sayfaya henüz doğrudan TTS API bağlantısı eklenmedi; metni dış ses aracına aktaracaksın.</p>
+<p class="muted">Türkçe seslendirmeyi şimdilik dış ses aracında MP3/WAV olarak indir. Sonra aşağıdan ses dosyasını ve anlatıcı fotoğrafını seçerek konuşturma videosu oluştur.</p>
+<label>Hazırladığın Türkçe ses dosyası (MP3 / WAV)</label><input id="narrationAudio" type="file" accept="audio/*">
+<div class="row"><button onclick="openTTS()" class="secondary">Türkçe ses üretim aracını aç ↗</button><button class="secondary" onclick="copyNarration()">Metni kopyala</button></div>
+<div class="row"><button onclick="generateTalkingVideo()">✦ Anlatıcı videosunu oluştur</button></div>
+<video id="talkingResult" controls playsinline style="display:none;width:100%;margin-top:14px;border-radius:12px"></video>
+<div id="talkingStatus" class="muted" style="font-size:13px;margin-top:10px"></div>
 </section>
 <section class="panel">
 <h3>04 · Sahne planı</h3><p class="muted">Senaryoyu sahnelere ayır; her sahne için anlatılan ana olayı temel alan görsel promptları otomatik hazırla. Sen tek tek prompt yazmayacaksın.</p>
@@ -88,4 +93,53 @@ function copyAllScenes(){copyText(scenes.map((s,i)=>'SAHNE '+(i+1)+'\nANLATICI: 
 function copyWanPrompt(){if(!scenes.length){alert('Önce sahneleri oluştur.');return;}copyText(scenes.map((s,i)=>'Scene '+(i+1)+': '+s.visual).join('\n\n'));}
 function openWan(){if(!scenes.length){alert('Önce sahneleri oluştur.');return;}window.open('https://huggingface.co/spaces/zerogpu-aoti/wan2-2-fp8da-aoti-faster','_blank');copyWanPrompt();}
 function openTTS(){window.open('https://speechma.com/turkish-text-to-speech','_blank');}
+async function uploadTalkingFile(file,base){
+ const form=new FormData();form.append('file',file);
+ const response=await fetch(base+'/api/video/upload',{method:'POST',body:form});
+ const data=await response.json();
+ if(!response.ok)throw new Error(data.error||data.detail||'Dosya yüklenemedi.');
+ return data.path;
+}
+async function generateTalkingVideo(){
+ const base=$('apiBase').value.trim().replace(/^http:\/\//i,'https://').replace(/\/+$/,'');
+ const image=$('presenter').files[0],audio=$('narrationAudio').files[0];
+ if(!base){alert('Önce Backend URL adresini gir.');return;}
+ if(!image){alert('Önce anlatıcı fotoğrafını yükle.');return;}
+ if(!audio){alert('Önce Türkçe seslendirme dosyasını yükle.');return;}
+ saveApiBase();
+ const status=$('talkingStatus');status.textContent='Fotoğraf ve ses dosyası güvenli sunucu üzerinden yükleniyor...';
+ $('talkingResult').style.display='none';
+ try{
+  const imagePath=await uploadTalkingFile(image,base);
+  status.textContent='Ses dosyası yükleniyor...';
+  const audioPath=await uploadTalkingFile(audio,base);
+  status.textContent='SadTalker ücretsiz GPU kuyruğuna gönderiliyor. İlk çalıştırma uzun sürebilir...';
+  const start=await fetch(base+'/api/video/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:[
+   {path:imagePath,meta:{_type:'gradio.FileData'}},
+   {path:audioPath,meta:{_type:'gradio.FileData'}},
+   'full',true,0,1.0
+  ]})});
+  const job=await start.json();
+  if(!start.ok)throw new Error(job.error||job.detail||'Video görevi başlatılamadı.');
+  if(!job.event_id)throw new Error('Video motoru görev numarası döndürmedi.');
+  status.textContent='Anlatıcı canlandırılıyor. Lütfen bekle; ücretsiz GPU yoğunluğuna göre birkaç dakika sürebilir...';
+  const resultResponse=await fetch(base+'/api/video/result?event_id='+encodeURIComponent(job.event_id));
+  const stream=await resultResponse.text();
+  if(!resultResponse.ok)throw new Error(stream.slice(0,500));
+  const lines=stream.split(/\r?\n/).filter(line=>line.startsWith('data:'));
+  let output=null;
+  for(const line of lines.reverse()){
+   const raw=line.slice(5).trim();if(!raw||raw==='null')continue;
+   try{const parsed=JSON.parse(raw);if(Array.isArray(parsed)&&parsed.length){output=parsed[0];break;}}catch(e){}
+  }
+  if(!output)throw new Error('Video sonucu okunamadı: '+stream.slice(-500));
+  const file=output.video||output;
+  let videoUrl=file.url||'';
+  if(!videoUrl&&file.path)videoUrl='https://henrybit-sadtalker-demo.hf.space/gradio_api/file='+encodeURIComponent(file.path);
+  if(!videoUrl)throw new Error('Video üretildi ancak indirme adresi alınamadı.');
+  if(videoUrl.startsWith('/'))videoUrl='https://henrybit-sadtalker-demo.hf.space'+videoUrl;
+  $('talkingResult').src=videoUrl;$('talkingResult').style.display='block';
+  status.textContent='Anlatıcı videosu hazır. Videoyu oynatabilir veya video menüsünden indirebilirsin.';
+ }catch(error){status.textContent='Üretim hatası: '+error.message;alert('Anlatıcı videosu oluşturulamadı: '+error.message);}
+}
 </script></body></html>
