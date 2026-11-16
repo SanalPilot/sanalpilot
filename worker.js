@@ -95,7 +95,8 @@ export default {
         const base = env.HF_SPACE_URL.replace(/\/$/, "");
         const headers = { "Content-Type": "application/json" };
         if (env.HF_TOKEN) headers.Authorization = "Bearer " + env.HF_TOKEN;
-        const upstream = await fetch(base + "/gradio_api/call/" + encodeURIComponent(env.HF_API_NAME), {
+        const apiName = String(env.HF_API_NAME).replace(/^\\/+/, "");
+        const upstream = await fetch(base + "/gradio_api/call/" + apiName, {
           method: "POST", headers, body: JSON.stringify({ data: body.data })
         });
         const raw = await upstream.text();
@@ -110,7 +111,8 @@ export default {
         const base = env.HF_SPACE_URL.replace(/\/$/, "");
         const headers = {};
         if (env.HF_TOKEN) headers.Authorization = "Bearer " + env.HF_TOKEN;
-        const upstream = await fetch(base + "/gradio_api/call/" + encodeURIComponent(env.HF_API_NAME) + "/" + encodeURIComponent(eventId), { headers });
+        const apiName = String(env.HF_API_NAME).replace(/^\\/+/, "");
+        const upstream = await fetch(base + "/gradio_api/call/" + apiName + "/" + encodeURIComponent(eventId), { headers });
         const raw = await upstream.text();
         if (!upstream.ok) return json({ error: "Hugging Face result request failed", detail: raw.slice(0, 1500) }, upstream.status);
         return new Response(raw, { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "text/event-stream; charset=utf-8" } });
