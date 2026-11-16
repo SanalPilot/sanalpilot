@@ -52,7 +52,16 @@ main{max-width:760px;margin:auto;padding:16px}header{display:flex;align-items:ce
 <script>
 let scenes=[];
 const $=id=>document.getElementById(id);
-$('apiBase').addEventListener('change',()=>{const v=$('apiBase').value.trim();$('apiState').textContent=v?'Backend adresi girildi.':'Henüz backend adresi girilmedi.';});
+try {
+  const savedApiBase = localStorage.getItem('nexus_api_base');
+  if (savedApiBase) $('apiBase').value = savedApiBase;
+} catch (e) {}
+function saveApiBase() {
+  const value = $('apiBase').value.trim();
+  try { localStorage.setItem('nexus_api_base', value); } catch (e) {}
+  $('apiState').textContent = value ? 'Backend adresi bu cihazda kaydedildi.' : 'Henüz backend adresi girilmedi.';
+}
+$('apiBase').addEventListener('change',saveApiBase); $('apiBase').addEventListener('blur',saveApiBase);
 $('presenter').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f);if(f.type.startsWith('video/')){$('presenterPreview').style.display='none';$('presenterVideo').src=u;$('presenterVideo').style.display='block';}else{$('presenterVideo').style.display='none';$('presenterPreview').src=u;$('presenterPreview').style.display='block';}});
 async function buildScenes(){
  const idea=$('idea').value.trim(), narration=$('narration').value.trim();
