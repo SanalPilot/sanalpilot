@@ -132,6 +132,25 @@ footer{text-align:center;color:#7f8ca8;font-size:11px;padding:20px}
 </section>
 
 <section class="card">
+<h3>🖼️ Görselden videoya · 8 saniye</h3>
+<p class="muted">Bir fotoğraf yükle, hareketi tarif et ve ücretsiz bulut demosunda videoya dönüştür.</p>
+<label>Başlangıç görseli</label>
+<input type="file" id="i2vImage" accept="image/*">
+<img id="i2vPreview" class="preview" alt="Yüklenen görsel önizlemesi">
+<label>Hareket ve kamera talimatı</label>
+<textarea id="i2vPrompt" placeholder="Örnek: Uçak pistte ilerlerken kamera yumuşakça sağa kayar, motor titreşimi ve hafif ısı dalgalanması görülür. Ana nesnenin şekli ve kimliği korunur.">Animate the uploaded image naturally for an 8-second clip. Preserve the original subject, face, identity, proportions, clothing, background, and composition. Add subtle realistic motion and smooth cinematic camera movement. No morphing, no identity changes, no sudden cuts.</textarea>
+<div class="grid">
+<div><label>Hedef süre</label><input value="8 saniye" readonly></div>
+<div><label>Format</label><select id="i2vRatio"><option>9:16 Dikey</option><option>16:9 Yatay</option><option>1:1 Kare</option></select></div>
+</div>
+<div class="row">
+<button onclick="copyI2VPrompt()">Promptu kopyala</button>
+<button class="secondary" onclick="openI2VCloud()">Ücretsiz bulut aracını aç ↗</button>
+</div>
+<div class="notice">Görsel bu sayfada yalnızca önizlenir. Üretim için açılan harici Wan demosuna görselini yeniden yükle ve promptu yapıştır. Demo yoğunluğa, ücretsiz kota ve süre sınırlarına bağlıdır; 8 saniye seçeneği görünmüyorsa sunulan süreyi kontrol et. Özel veya hassas fotoğraflar yükleme.</div>
+</section>
+
+<section class="card">
 <h3>🎬 Video üretim paketi</h3>
 <label>Video motoru</label>
 <select id="engine">
