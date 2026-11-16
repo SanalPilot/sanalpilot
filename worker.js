@@ -65,6 +65,27 @@ export default {
         return json(result);
       }
 
+      // Upload a portrait or narration audio file to the configured Gradio Space.
+      if (url.pathname === "/api/video/upload" && request.method === "POST") {
+        if (!env.HF_SPACE_URL || !env.HF_API_NAME) return json({ error: "Video Space is not configured." }, 503);
+        const incoming = await request.formData();
+        const file = incoming.get("file");
+        if (!file || typeof file.arrayBuffer !== "function") return json({ error: "A file field is required." }, 400);
+        const form = new FormData();
+        form.append("files", file, file.name || "upload.bin");
+        const headers = {};
+        if (env.HF_TOKEN) headers.Authorization = "Bearer " + env.HF_TOKEN;
+        const base = env.HF_SPACE_URL.replace(/\\/$/, "");
+        const upstream = await fetch(base + "/gradio_api/upload", { method: "POST", headers, body: form });
+        const raw = await upstream.text();
+        if (!upstream.ok) return json({ error: "Hugging Face upload failed", detail: raw.slice(0, 1500) }, upstream.status);
+        let uploaded;
+        try { uploaded = JSON.parse(raw); } catch { return json({ error: "Unexpected upload response", detail: raw.slice(0, 1000) }, 502); }
+        const path = Array.isArray(uploaded) ? uploaded[0] : uploaded.path;
+        if (!path) return json({ error: "Upload response did not include a file path.", detail: raw.slice(0, 1000) }, 502);
+        return json({ path });
+      }
+
       // Generic Gradio Space queue bridge. The exact Space API name and input array
       // must be read from that Space's "Use via API" panel before production use.
       if (url.pathname === "/api/video/start" && request.method === "POST") {
