@@ -98,7 +98,7 @@ export default {
         const headers = { "Content-Type": "application/json" };
         const hfToken = request.headers.get("X-HF-Token") || env.HF_TOKEN;
         if (hfToken) headers.Authorization = "Bearer " + hfToken;
-        const apiName = String(env.HF_API_NAME).replace(/^\/+/, "");
+        const apiName = String(env.HF_API_NAME).split("/").filter(Boolean).join("/");
         const upstream = await fetch(base + "/gradio_api/call/" + apiName, {
           method: "POST", headers, body: JSON.stringify({ data: body.data })
         });
@@ -115,7 +115,7 @@ export default {
         const headers = {};
         const hfToken = request.headers.get("X-HF-Token") || env.HF_TOKEN;
         if (hfToken) headers.Authorization = "Bearer " + hfToken;
-        const apiName = String(env.HF_API_NAME).replace(/^\/+/, "");
+        const apiName = String(env.HF_API_NAME).split("/").filter(Boolean).join("/");
         const upstream = await fetch(base + "/gradio_api/call/" + apiName + "/" + encodeURIComponent(eventId), { headers });
         const raw = await upstream.text();
         if (!upstream.ok) return json({ error: "Hugging Face result request failed", detail: raw.slice(0, 1500) }, upstream.status);
