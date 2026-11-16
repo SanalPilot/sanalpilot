@@ -67,7 +67,7 @@ export default {
 
       // Upload a portrait or narration audio file to the configured Gradio Space.
       if (url.pathname === "/api/video/upload" && request.method === "POST") {
-        if (!env.HF_SPACE_URL || !env.HF_API_NAME) return json({ error: "Video Space is not configured." }, 503);
+        if (!env.HF_SPACE_URL || !env.HF_API_NAME) return json({ error: "Video Space is not configured.", diagnostics: { hasSpaceUrl: Boolean(env.HF_SPACE_URL), hasApiName: Boolean(env.HF_API_NAME) } }, 503);
         const incoming = await request.formData();
         const file = incoming.get("file");
         if (!file || typeof file.arrayBuffer !== "function") return json({ error: "A file field is required." }, 400);
@@ -89,7 +89,7 @@ export default {
       // Generic Gradio Space queue bridge. The exact Space API name and input array
       // must be read from that Space's "Use via API" panel before production use.
       if (url.pathname === "/api/video/start" && request.method === "POST") {
-        if (!env.HF_SPACE_URL || !env.HF_API_NAME) return json({ error: "Set HF_SPACE_URL and HF_API_NAME after checking the Space API panel." }, 503);
+        if (!env.HF_SPACE_URL || !env.HF_API_NAME) return json({ error: "Set HF_SPACE_URL and HF_API_NAME after checking the Space API panel.", diagnostics: { hasSpaceUrl: Boolean(env.HF_SPACE_URL), hasApiName: Boolean(env.HF_API_NAME) } }, 503);
         const body = await request.json();
         if (!Array.isArray(body.data)) return json({ error: "Expected { data: [...] } using the Space's exact API input order." }, 400);
         const base = env.HF_SPACE_URL.replace(/\/$/, "");
