@@ -275,6 +275,23 @@ function openTalkingPhoto(){
  if(!p||!a)return alert("Önce fotoğraf ve ses dosyasını seç.");
  window.open("https://huggingface.co/spaces/vinthony/SadTalker","_blank");
 }
+document.getElementById("i2vImage").addEventListener("change",e=>{
+ const file=e.target.files[0];
+ if(!file)return;
+ const img=document.getElementById("i2vPreview");
+ img.src=URL.createObjectURL(file);
+ img.style.display="block";
+});
+async function copyI2VPrompt(){
+ const prompt=document.getElementById("i2vPrompt").value.trim();
+ if(!prompt)return alert("Önce hareket promptunu yaz.");
+ try{await navigator.clipboard.writeText(prompt+"\\nTarget duration: 8 seconds. Aspect ratio: "+document.getElementById("i2vRatio").value+".");alert("Prompt kopyalandı. Bulut demosunda prompt alanına yapıştırabilirsin.");}
+ catch(e){alert("Kopyalama desteklenmedi. Promptu seçip kopyalayabilirsin.");}
+}
+function openI2VCloud(){
+ if(!document.getElementById("i2vImage").files[0])return alert("Önce başlangıç görselini seç.");
+ window.open("https://huggingface.co/spaces/zerogpu-aoti/wan2-2-fp8da-aoti-faster","_blank");
+}
 function prepareVideo(){
  if(!scenes.length)return alert("Önce sahne oluştur.");
  const seconds=parseInt(document.getElementById("duration").value);
