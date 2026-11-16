@@ -118,10 +118,29 @@ export default {
         const hfToken = request.headers.get("X-HF-Token") || env.HF_TOKEN;
         if (hfToken) headers.Authorization = "Bearer " + hfToken;
         const apiName = String(HF_API_NAME).split("/").filter(Boolean).join("/");
-        const upstream = await fetch(base + "/gradio_api/call/" + apiName + "/" + encodeURIComponent(eventId), { headers });
-        const raw = await upstream.text();
-        if (!upstream.ok) return json({ error: "Hugging Face result request failed", detail: raw.slice(0, 1500) }, upstream.status);
-        return new Response(raw, { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "text/event-stream; charset=utf-8" } });
+        let upstream;
+        try {
+          upstream = await fetch(base + "/gradio_api/call/" + apiName + "/" + encodeURIComponent(eventId), { headers });
+        } catch (error) {
+          return json({ error: "Hugging Face sonuç bağlantısı kurulamadı", detail: String(error?.message || error), stage: "upstream-fetch" }, 502);
+        }
+        if (!upstream.ok) {
+          const raw = await upstream.text();
+          return json({ error: "Hugging Face result request failed", status: upstream.status, detail: raw.slice(0, 1500) }, 502);
+        }
+        // Stream the SSE response directly instead of buffering it until the GPU job ends.
+        return new Response(upstream.body, {
+          status: 200,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Groq-Key,X-HF-Token",
+            "Access-Control-Expose-Headers": "Content-Type",
+            "Content-Type": "text/event-stream; charset=utf-8",
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no"
+          }
+        });
       }
 
       // Provider-specific TTS adapter will be added once the selected provider's
