@@ -12,7 +12,7 @@ main{max-width:760px;margin:auto;padding:16px}header{display:flex;align-items:ce
 <header><div class="logo">✦</div><div><h1>NEXUS AI</h1><small>AI Video Studio · Mobile</small></div></header>
 <section class="hero"><div class="eyebrow">TEK PROJE · TEK AKIŞ</div><h2>Fikrini videoya dönüştür.</h2><p class="muted">Senaryonu yaz, anlatıcı görselini yükle, sesi ve sahne planını hazırla. Dağınık araçlar yerine tek bir çalışma alanı.</p></section>
 <section class="panel">
-<h3>Bağlantı · NEXUS API</h3><p class="muted">Cloudflare Worker adresi buraya girilecek. API anahtarları bu sayfaya yazılmaz; sunucuda gizli tutulur.</p><label>Backend URL</label><input id="apiBase" type="url" value="https://sanalpilot.simflightmoments.workers.dev" placeholder="https://sanalpilot.simflightmoments.workers.dev"><div id="apiState" class="muted" style="font-size:12px;margin-top:8px">Henüz backend adresi girilmedi.</div>
+<h3>Bağlantı · API ayarları</h3><p class="muted">Anahtarlarını buraya gir. Bu cihazda saklanır; kimseyle paylaşma ve ortak cihazda kullanma.</p><label>Groq API Key</label><input id="groqKey" type="password" autocomplete="off" placeholder="gsk_..."><label>Hugging Face Token (isteğe bağlı)</label><input id="hfToken" type="password" autocomplete="off" placeholder="hf_..."><div class="row"><button class="secondary" type="button" onclick="saveKeys()">Anahtarları bu telefona kaydet</button></div><label>Backend URL</label><input id="apiBase" type="url" value="https://sanalpilot.simflightmoments.workers.dev" placeholder="https://sanalpilot.simflightmoments.workers.dev"><div id="apiState" class="muted" style="font-size:12px;margin-top:8px">Henüz backend adresi girilmedi.</div>
 </section>
 <section class="panel">
 <h3>01 · Proje fikri</h3>
@@ -58,9 +58,13 @@ main{max-width:760px;margin:auto;padding:16px}header{display:flex;align-items:ce
 let scenes=[];
 const $=id=>document.getElementById(id);
 try {
+  $('groqKey').value = localStorage.getItem('nexus_groq_key') || '';
+  $('hfToken').value = localStorage.getItem('nexus_hf_token') || '';
   const savedApiBase = localStorage.getItem('nexus_api_base');
   if (savedApiBase) $('apiBase').value = savedApiBase;
 } catch (e) {}
+function saveKeys() { try { localStorage.setItem('nexus_groq_key', $('groqKey').value.trim()); localStorage.setItem('nexus_hf_token', $('hfToken').value.trim()); alert('API anahtarları bu telefona kaydedildi.'); } catch(e) { alert('Tarayıcı kaydetmeye izin vermedi.'); } }
+function apiHeaders(jsonBody=false) { const h={}; if(jsonBody) h['Content-Type']='application/json'; const g=$('groqKey').value.trim(), t=$('hfToken').value.trim(); if(g) h['X-Groq-Key']=g; if(t) h['X-HF-Token']=t; return h; }
 function saveApiBase() {
   const value = $('apiBase').value.trim();
   try { localStorage.setItem('nexus_api_base', value); } catch (e) {}
@@ -75,7 +79,7 @@ async function buildScenes(){
  if(!base){alert('Önce Cloudflare Worker backend adresini gir. Backend henüz dağıtılmadı.');return;}
  $('status').textContent='Groq AI hikâyeyi analiz ediyor ve sahneleri yazıyor...';
  try{
-  const res=await fetch(base+'/api/story',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:$('title').value,idea,narration,count:Number($('count').value),ratio:$('ratio').value,style:$('tone').value,identity:$('identity').value})});
+  const res=await fetch(base+'/api/story',{method:'POST',headers:apiHeaders(true),body:JSON.stringify({title:$('title').value,idea,narration,count:Number($('count').value),ratio:$('ratio').value,style:$('tone').value,identity:$('identity').value})});
   const data=await res.json();
   if(!res.ok)throw new Error(data.error||data.detail||'API isteği başarısız.');
   if(!Array.isArray(data.scenes)||!data.scenes.length)throw new Error('AI sahne listesi döndürmedi.');
@@ -95,7 +99,7 @@ function openWan(){if(!scenes.length){alert('Önce sahneleri oluştur.');return;
 function openTTS(){window.open('https://speechma.com/turkish-text-to-speech','_blank');}
 async function uploadTalkingFile(file,base){
  const form=new FormData();form.append('file',file);
- const response=await fetch(base+'/api/video/upload',{method:'POST',body:form});
+ const response=await fetch(base+'/api/video/upload',{method:'POST',headers:apiHeaders(),body:form});
  const data=await response.json();
  if(!response.ok)throw new Error(data.error||data.detail||'Dosya yüklenemedi.');
  return data.path;
@@ -114,16 +118,16 @@ async function generateTalkingVideo(){
   status.textContent='Ses dosyası yükleniyor...';
   const audioPath=await uploadTalkingFile(audio,base);
   status.textContent='SadTalker ücretsiz GPU kuyruğuna gönderiliyor. İlk çalıştırma uzun sürebilir...';
-  const start=await fetch(base+'/api/video/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:[
+  const start=await fetch(base+'/api/video/start',{method:'POST',headers:apiHeaders(true),body:JSON.stringify({data:[
    {path:imagePath,meta:{_type:'gradio.FileData'}},
    {path:audioPath,meta:{_type:'gradio.FileData'}},
-   'full',true,0,1.0
+   'crop',false,0,1.0
   ]})});
   const job=await start.json();
   if(!start.ok)throw new Error(job.error||job.detail||'Video görevi başlatılamadı.');
   if(!job.event_id)throw new Error('Video motoru görev numarası döndürmedi.');
   status.textContent='Anlatıcı canlandırılıyor. Lütfen bekle; ücretsiz GPU yoğunluğuna göre birkaç dakika sürebilir...';
-  const resultResponse=await fetch(base+'/api/video/result?event_id='+encodeURIComponent(job.event_id));
+  const resultResponse=await fetch(base+'/api/video/result?event_id='+encodeURIComponent(job.event_id),{headers:apiHeaders()});
   const stream=await resultResponse.text();
   if(!resultResponse.ok)throw new Error(stream.slice(0,500));
   const lines=stream.split(/\r?\n/).filter(line=>line.startsWith('data:'));
