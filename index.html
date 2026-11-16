@@ -165,7 +165,7 @@ footer{text-align:center;color:#7f8ca8;font-size:11px;padding:20px}
 <option>10 saniye</option>
 </select>
 <div class="row">
-<button onclick="prepareVideo()">Video paketini hazırla</button>
+<button onclick="prepareVideo()">Wan ile video üretimine geç ↗</button>
 <button class="secondary" onclick="downloadSRT()">Altyazı SRT indir</button>
 </div>
 <div id="videoResult" class="muted" style="margin-top:12px"></div>
@@ -293,24 +293,20 @@ function openI2VCloud(){
  window.open("https://huggingface.co/spaces/zerogpu-aoti/wan2-2-fp8da-aoti-faster","_blank");
 }
 function prepareVideo(){
- if(!scenes.length)return alert("Önce sahne oluştur.");
- const seconds=parseInt(document.getElementById("duration").value);
- const data={
- engine:document.getElementById("engine").value,
- duration:seconds,
- project:projectData(),
- clips:scenes.map((s,i)=>({
- file:"scene_"+(i+1)+".mp4",
- prompt:s.visual+"\nKlip süresi: "+seconds+" saniye.",
- negative:s.negative,
- narration:s.voice
- })),
- montageOrder:scenes.map((s,i)=>"scene_"+(i+1)+".mp4"),
- output:"nexus-final-video.mp4"
- };
- window.nexusVideoPackage=data;
- document.getElementById("videoResult").textContent="Video paketi hazır. JSON olarak dışa aktarabilirsin.";
- downloadFile(JSON.stringify(data,null,2),"nexus-video-paketi.json","application/json");
+ const image=document.getElementById("i2vImage");
+ const prompt=document.getElementById("i2vPrompt");
+ if(!image || !image.files[0])return alert("Önce 'Görselden videoya' bölümünden bir fotoğraf yükle.");
+ const instruction=(prompt?prompt.value:"Animate the uploaded image naturally for 8 seconds. Preserve identity and composition.")+"\\nDuration: 8 seconds. Aspect ratio: "+(document.getElementById("i2vRatio")?document.getElementById("i2vRatio").value:"9:16 Dikey")+".";
+ window.open("https://huggingface.co/spaces/zerogpu-aoti/wan2-2-fp8da-aoti-faster","_blank");
+ if(navigator.clipboard && navigator.clipboard.writeText){
+  navigator.clipboard.writeText(instruction).then(()=>{
+   document.getElementById("videoResult").textContent="Wan demosu açıldı. Prompt kopyalandı; görselini demo sayfasına yükleyip promptu yapıştır.";
+  }).catch(()=>{
+   document.getElementById("videoResult").textContent="Wan demosu açıldı. Görselini yükle ve yukarıdaki hareket promptunu kopyalayıp yapıştır.";
+  });
+ }else{
+  document.getElementById("videoResult").textContent="Wan demosu açıldı. Görselini yükle ve hareket promptunu kopyalayıp yapıştır.";
+ }
 }
 function downloadSRT(){
  if(!scenes.length)return alert("Önce sahne oluştur.");
